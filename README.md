@@ -1,6 +1,6 @@
 # Action to run an HTTP Caching server
 
-Run a local server with an API compatioble with build systems like Gradle, Bazel, Buck, Pants, etc.
+Run a local server with an API compatible with build systems like Gradle, Bazel, Buck, Pants, etc.
 
 ## Inputs
 
