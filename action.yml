@@ -1,0 +1,14 @@
+name: 'HTTP Cache Proxy'
+description: 'Run HTTP Cache Proxy'
+branding:
+  icon: 'box'  
+  color: gray-dark
+inputs:
+  port:
+    description: 'Port to run on'
+    required: false
+    default: '12321'
+
+runs:
+  using: 'node12'
+  main: 'dist/index.js'

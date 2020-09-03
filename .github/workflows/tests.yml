@@ -10,12 +10,21 @@ on:
       - '**.md'
 
 jobs:
-  build:
+  test:
     runs-on: ubuntu-latest
-    name: Node Tests
+    name: Test Proxy
     steps:
       - uses: actions/checkout@v2
-      - name: Setup node
-        uses: actions/setup-node@v1
-      - run: npm install
-      - run: npm test
+      - name: Proxy Integration Tests
+        # Need it so ACTIONS_CACHE_URL and ACTIONS_RUNTIME_TOKEN are available
+        uses: cedrickring/golang-action@1.6.0
+        with:
+          args: cd proxy && go test -v ./...
+      - name: Push Image
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+        env:
+          CR_PAT: ${{secrets.CR_PAT}}
+        run: |
+          docker login ghcr.io -u $GITHUB_ACTOR -p $CR_PAT
+          docker build proxy --tag ghcr.io/cirruslabs/actions-http-cache-proxy:latest
+          docker push ghcr.io/cirruslabs/actions-http-cache-proxy:latest

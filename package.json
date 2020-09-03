@@ -4,7 +4,7 @@
   "description": "HTTP Caching service for GitHub Actions",
   "type": "module",
   "scripts": {
-    "test": "mocha -r ts-node/register src/**.spec.ts"
+    "test": "mocha --timeout 30000 -r ts-node/register src/**.spec.ts"
   },
   "repository": {
     "type": "git",
@@ -29,6 +29,7 @@
     "@types/request": "^2.48.5",
     "@types/semver": "^7.3.3",
     "@types/uuid": "^8.3.0",
+    "got": "^11.5.2",
     "semver": "^7.3.2",
     "typescript": "^4.0.2",
     "uuid": "^8.3.0"
