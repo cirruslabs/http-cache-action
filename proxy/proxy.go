@@ -21,11 +21,11 @@ var token = os.Getenv("ACTIONS_RUNTIME_TOKEN")
 var httpClient = &http.Client{}
 
 type GetCacheResponse struct {
-	archiveLocation string
+	ArchiveLocation string `json:"archiveLocation"`
 }
 
 type ReserveCacheResponse struct {
-	cacheId int
+	CacheId int `json:"cacheId"`
 }
 
 func main() {
@@ -81,11 +81,13 @@ func checkCacheExists(w http.ResponseWriter, key string) {
 }
 
 func findCacheLocation(key string) (string, error) {
-	resource := fmt.Sprintf("cache?keys=%s&version=%s", key, key)
+	resource := fmt.Sprintf("cache?keys=%s&version=%s", key, calculateSHA256(key))
 	requestUrl := getCacheApiUrl(resource)
 	request, _ := http.NewRequest("GET", requestUrl, nil)
 	request.Header.Set("Authorization", "Bearer "+token)
+	request.Header.Set("User-Agent", "actions/cache")
 	request.Header.Set("Accept", "application/json;api-version=6.0-preview.1")
+	request.Header.Set("Accept-Charset", "utf-8")
 
 	response, err := httpClient.Do(request)
 	if err != nil {
@@ -110,7 +112,7 @@ func findCacheLocation(key string) (string, error) {
 		log.Println(string(bodyBytes))
 		return "", err
 	}
-	return cacheResponse.archiveLocation, nil
+	return cacheResponse.ArchiveLocation, nil
 }
 
 func uploadCache(w http.ResponseWriter, r *http.Request, key string) {
@@ -150,18 +152,20 @@ func uploadCacheFromReader(cacheId int, body io.Reader) error {
 			return err
 		}
 	}
-	return commitCache(cacheId)
+	return commitCache(cacheId, bytesUploaded)
 }
 
 func uploadCacheChunk(url string, data []byte, position int) error {
 	request, _ := http.NewRequest("PATCH", url, bytes.NewBuffer(data))
 	request.Header.Set("Authorization", "Bearer "+token)
+	request.Header.Set("User-Agent", "actions/cache")
 	request.Header.Set("Content-Type", "application/octet-stream")
 	request.Header.Set("Content-Range", fmt.Sprintf("bytes %d-%d/*", position, position+len(data)-1))
 	request.Header.Set("Accept", "application/json;api-version=6.0-preview.1")
+	request.Header.Set("Accept-Charset", "utf-8")
 
 	response, _ := httpClient.Do(request)
-	if response.StatusCode != 201 {
+	if response.StatusCode != 204 {
 		defer response.Body.Close()
 		bodyBytes, _ := ioutil.ReadAll(response.Body)
 		log.Println(string(bodyBytes))
@@ -170,12 +174,17 @@ func uploadCacheChunk(url string, data []byte, position int) error {
 	return nil
 }
 
-func commitCache(cacheId int) error {
+func commitCache(cacheId int, size int) error {
 	url := getCacheApiUrl(fmt.Sprintf("caches/%d", cacheId))
-	request, _ := http.NewRequest("POST", url, nil)
+	requestBody := fmt.Sprintf("{ \"size\": \"%d\" }", size)
+	request, _ := http.NewRequest("POST", url, bytes.NewBufferString(requestBody))
 	request.Header.Set("Authorization", "Bearer "+token)
+	request.Header.Set("User-Agent", "actions/cache")
+	request.Header.Set("Content-Type", "application/json")
+	request.Header.Set("Accept", "application/json;api-version=6.0-preview.1")
+	request.Header.Set("Accept-Charset", "utf-8")
 	response, _ := httpClient.Do(request)
-	if response.StatusCode != 201 {
+	if response.StatusCode != 204 {
 		defer response.Body.Close()
 		bodyBytes, _ := ioutil.ReadAll(response.Body)
 		log.Println(string(bodyBytes))
@@ -189,6 +198,8 @@ func reserveCache(key string) (int, error) {
 	requestBody := fmt.Sprintf("{ \"key\": \"%s\", \"version\": \"%s\" }", key, calculateSHA256(key))
 	request, _ := http.NewRequest("POST", requestUrl, bytes.NewBufferString(requestBody))
 	request.Header.Set("Authorization", "Bearer "+token)
+	request.Header.Set("User-Agent", "actions/cache")
+	request.Header.Set("Content-Type", "application/json")
 	request.Header.Set("Accept", "application/json;api-version=6.0-preview.1")
 	request.Header.Set("Accept-Charset", "utf-8")
 
@@ -202,12 +213,12 @@ func reserveCache(key string) (int, error) {
 		return -1, fmt.Errorf("failed to reserve cache: %d", response.StatusCode)
 	}
 
-	cacheResponse := ReserveCacheResponse{}
-	err = json.NewDecoder(bytes.NewReader(bodyBytes)).Decode(&cacheResponse)
+	var cacheResponse ReserveCacheResponse
+	err = json.Unmarshal(bodyBytes, &cacheResponse)
 	if err != nil {
 		return -1, err
 	}
-	return cacheResponse.cacheId, nil
+	return cacheResponse.CacheId, nil
 }
 
 func calculateSHA256(s string) string {

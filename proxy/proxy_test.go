@@ -5,7 +5,6 @@ import (
 	"encoding/base32"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -18,7 +17,7 @@ func Test_API(t *testing.T) {
 	encodedToken := base32.StdEncoding.EncodeToString([]byte(os.Getenv("ACTIONS_RUNTIME_TOKEN")))
 	log.Printf("Token for debugging: %s\n", encodedToken)
 
-	cacheKey := fmt.Sprintf("key%d", time.Now().Unix())
+	cacheKey := fmt.Sprintf("Linux-node-%d", time.Now().Unix())
 	location, err := findCacheLocation(cacheKey)
 	if err != nil {
 		t.Error(err)
@@ -58,23 +57,9 @@ func Test_API(t *testing.T) {
 	if resp.StatusCode != 200 {
 		t.Errorf("Failed to download cache entry: %d %s", resp.StatusCode, resp.Status)
 	}
-	defer resp.Body.Close()
 
-	file, err := ioutil.TempFile("proxy", "testing")
-	if err != nil {
-		t.Error(err)
-		return
-	}
-
-	writtenBytes, err := io.Copy(file, resp.Body)
-
-	if err != nil {
-		t.Error(err)
-		return
-	}
-
-	if writtenBytes != cacheEntrySize {
-		t.Errorf("Downloaded only %d bytes!", writtenBytes)
+	if resp.ContentLength != cacheEntrySize {
+		t.Errorf("Downloaded only %d bytes!", resp.ContentLength)
 		return
 	}
 }
