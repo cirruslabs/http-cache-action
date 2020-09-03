@@ -2,20 +2,17 @@ package main
 
 import (
 	"crypto/rand"
-	"encoding/base32"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
-	"os"
 	"testing"
 	"time"
 )
 
 func Test_API(t *testing.T) {
-	log.Printf("Cache URL for debugging: %s\n", os.Getenv("ACTIONS_CACHE_URL"))
-	encodedToken := base32.StdEncoding.EncodeToString([]byte(os.Getenv("ACTIONS_RUNTIME_TOKEN")))
-	log.Printf("Token for debugging: %s\n", encodedToken)
+	//log.Printf("Cache URL for debugging: %s\n", os.Getenv("ACTIONS_CACHE_URL"))
+	//encodedToken := base32.StdEncoding.EncodeToString([]byte(os.Getenv("ACTIONS_RUNTIME_TOKEN")))
+	//log.Printf("Token for debugging: %s\n", encodedToken)
 
 	cacheKey := fmt.Sprintf("Linux-node-%d", time.Now().Unix())
 	location, err := findCacheLocation(cacheKey)
