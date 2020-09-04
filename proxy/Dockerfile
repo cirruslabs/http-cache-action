@@ -8,7 +8,7 @@ RUN go get ./... && \
 
 FROM alpine
 
-LABEL org.opencontainers.image.source = "https://https://github.com/cirruslabs/http-cache-action/"
+LABEL org.opencontainers.image.source = "https://github.com/cirruslabs/http-cache-action/"
 
 COPY --from=builder /tmp/build/proxy /app/
 WORKDIR /app
