@@ -10,7 +10,7 @@ async function run() {
         "--env", "ACTIONS_CACHE_URL",
         "--env", "ACTIONS_RUNTIME_URL",
         "--env", "ACTIONS_RUNTIME_TOKEN",
-        "ghcr.io/cirruslabs/http-cache-action/proxy:latest"
+        "ghcr.io/cirruslabs/actions-http-cache-proxy:latest"
     ];
 
     try {

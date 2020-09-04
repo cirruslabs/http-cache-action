@@ -26,5 +26,5 @@ jobs:
           CR_PAT: ${{secrets.CR_PAT}}
         run: |
           echo ${{ secrets.CR_PAT }} | docker login ghcr.io -u $GITHUB_ACTOR --password-stdin
-          docker build proxy --tag ghcr.io/cirruslabs/http-cache-action/proxy:latest
-          docker push ghcr.io/cirruslabs/http-cache-action/proxy:latest
+          docker build proxy --tag ghcr.io/cirruslabs/actions-http-cache-proxy:latest
+          docker push ghcr.io/cirruslabs/actions-http-cache-proxy:latest
