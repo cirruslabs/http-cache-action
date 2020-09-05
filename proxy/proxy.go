@@ -74,7 +74,27 @@ func downloadCache(w http.ResponseWriter, r *http.Request, key string) {
 		w.WriteHeader(404)
 		return
 	}
-	http.Redirect(w, r, location, 302)
+	proxyDownloadFromURL(w, location)
+}
+
+func proxyDownloadFromURL(w http.ResponseWriter, url string) {
+	resp, err := http.Get(url)
+	if err != nil {
+		log.Printf("Proxying cache %s failed: %v\n", url, err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	successfulStatus := 100 <= resp.StatusCode && resp.StatusCode < 300
+	if !successfulStatus {
+		log.Printf("Proxying cache %s failed with %d status\n", url, resp.StatusCode)
+		w.WriteHeader(resp.StatusCode)
+		return
+	}
+	_, err = io.Copy(w, resp.Body)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+	}
+	w.WriteHeader(http.StatusOK)
 }
 
 func checkCacheExists(w http.ResponseWriter, key string) {
