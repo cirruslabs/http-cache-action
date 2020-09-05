@@ -15,6 +15,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"time"
 )
 
 var token = os.Getenv("ACTIONS_RUNTIME_TOKEN")
@@ -42,6 +43,7 @@ func main() {
 }
 
 func handler(w http.ResponseWriter, r *http.Request) {
+	startTime := time.Now()
 	key := r.URL.Path
 	if key[0] == '/' {
 		key = key[1:]
@@ -55,16 +57,20 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	} else if r.Method == "PUT" {
 		uploadCache(w, r, key)
 	}
+	duration := time.Since(startTime)
+	log.Printf("Served %s request for %s key in %dms\n", r.Method, key, duration.Milliseconds())
 }
 
 func downloadCache(w http.ResponseWriter, r *http.Request, key string) {
 	location, err := findCacheLocation(key)
 	if err != nil {
+		log.Printf("Failed to download key %s: %v\n", key, err)
 		w.Write([]byte(err.Error()))
 		w.WriteHeader(500)
 		return
 	}
 	if location == "" {
+		log.Printf("Cache %s not found\n", key)
 		w.WriteHeader(404)
 		return
 	}
@@ -74,6 +80,7 @@ func downloadCache(w http.ResponseWriter, r *http.Request, key string) {
 func checkCacheExists(w http.ResponseWriter, key string) {
 	location, err := findCacheLocation(key)
 	if location == "" || err != nil {
+		log.Printf("Cache %s not found\n", key)
 		w.WriteHeader(404)
 		return
 	}
@@ -103,6 +110,7 @@ func findCacheLocation(key string) (string, error) {
 	defer response.Body.Close()
 	bodyBytes, err := ioutil.ReadAll(utfbom.SkipOnly(response.Body))
 	if response.StatusCode >= 400 {
+		log.Printf("Failed to download key %s: %d %s\n", key, response.StatusCode, string(bodyBytes))
 		return "", fmt.Errorf("failed to get location: %d", response.StatusCode)
 	}
 
@@ -112,18 +120,23 @@ func findCacheLocation(key string) (string, error) {
 		log.Println(string(bodyBytes))
 		return "", err
 	}
+	if cacheResponse.ArchiveLocation == "" {
+		log.Println(string(bodyBytes))
+	}
 	return cacheResponse.ArchiveLocation, nil
 }
 
 func uploadCache(w http.ResponseWriter, r *http.Request, key string) {
 	cacheId, err := reserveCache(key)
 	if err != nil {
+		log.Printf("Failed to reserve upload for cache key %s: %v\n", key, err)
 		w.Write([]byte(err.Error()))
 		w.WriteHeader(500)
 		return
 	}
 	err = uploadCacheFromReader(cacheId, r.Body)
 	if err != nil {
+		log.Printf("Failed to upload cache %s: %v\n", key, err)
 		w.Write([]byte(err.Error()))
 		w.WriteHeader(http.StatusBadRequest)
 		return
@@ -168,6 +181,7 @@ func uploadCacheChunk(url string, data []byte, position int) error {
 	if response.StatusCode != 204 {
 		defer response.Body.Close()
 		bodyBytes, _ := ioutil.ReadAll(response.Body)
+		log.Printf("Failed to upload cache chunk: %s\n", string(bodyBytes))
 		log.Println(string(bodyBytes))
 		return fmt.Errorf("failed to upload chunk with status %d: %s", response.StatusCode, string(bodyBytes))
 	}
@@ -187,7 +201,7 @@ func commitCache(cacheId int, size int) error {
 	if response.StatusCode != 204 {
 		defer response.Body.Close()
 		bodyBytes, _ := ioutil.ReadAll(response.Body)
-		log.Println(string(bodyBytes))
+		log.Printf("Failed to commit cache %d: %s\n", cacheId, string(bodyBytes))
 		return fmt.Errorf("failed to commit cache %d with status %d: %s", cacheId, response.StatusCode, string(bodyBytes))
 	}
 	return nil
