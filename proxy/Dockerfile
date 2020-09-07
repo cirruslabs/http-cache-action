@@ -9,6 +9,7 @@ RUN go get ./... && \
 FROM alpine
 
 LABEL org.opencontainers.image.source = "https://github.com/cirruslabs/http-cache-action/"
+EXPOSE 12321
 
 RUN apk --no-cache add ca-certificates
 COPY --from=builder /tmp/build/proxy /app/
