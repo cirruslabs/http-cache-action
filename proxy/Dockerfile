@@ -6,7 +6,7 @@ ADD . /tmp/build/
 RUN go get ./... && \
     CGO_ENABLED=0 GOOS=linux go build -o proxy proxy.go
 
-FROM alpine
+FROM alpine:latest
 
 LABEL org.opencontainers.image.source = "https://github.com/cirruslabs/http-cache-action/"
 EXPOSE 12321

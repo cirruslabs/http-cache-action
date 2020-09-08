@@ -11,7 +11,6 @@ import (
 	"io"
 	"io/ioutil"
 	"log"
-	"net"
 	"net/http"
 	"os"
 	"strings"
@@ -32,14 +31,11 @@ type ReserveCacheResponse struct {
 func main() {
 	http.HandleFunc("/", handler)
 
-	address := "127.0.0.1:12321"
-	listener, err := net.Listen("tcp", address)
-
+	log.Println("Starting http cache server on port 12321")
+	err := http.ListenAndServe(":12321", nil)
 	if err != nil {
-		log.Fatal(err)
+		log.Printf("Failed to start server: %v\n", err)
 	}
-	log.Printf("Starting http cache server %s\n", address)
-	http.Serve(listener, nil)
 }
 
 func handler(w http.ResponseWriter, r *http.Request) {
@@ -48,7 +44,10 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	if key[0] == '/' {
 		key = key[1:]
 	}
-	if r.Method == "GET" {
+	if key == "" {
+		_, _ = w.Write([]byte("HTTP Cache is running!"))
+		w.WriteHeader(200)
+	} else if r.Method == "GET" {
 		downloadCache(w, r, key)
 	} else if r.Method == "HEAD" {
 		checkCacheExists(w, key)
