@@ -15,7 +15,7 @@ async function run() {
 
     try {
         await exec(`"docker"`, runArguments);
-    } catch (e) {
+    } catch (e: any) {
         core.error(e)
     }
 }
